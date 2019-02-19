@@ -50,30 +50,10 @@
     var selected = select.options[select.selectedIndex];
     var key = selected.value;
     var label = selected.textContent;
-    // TODO init the app.selectedCities array here
     if (!app.selectedCities) {
       app.selectedCities = [];
     }
     app.getForecast(key, label);
-    // TODO push the selected city to the array and save here
-    if ('caches' in window) {
-      /*
-       * Check if the service worker has already cached this city's weather
-       * data. If the service worker has the data, then display the cached
-       * data while the app fetches the latest data.
-       */
-      caches.match(url).then(function(response) {
-        if (response) {
-          response.json().then(function updateFromCache(json) {
-            var results = json.query.results;
-            results.key = key;
-            results.label = label;
-            results.created = json.query.created;
-            app.updateForecastCard(results);
-          });
-        }
-      });
-    }
     app.selectedCities.push({key: key, label: label});
     app.saveSelectedCities();
     app.toggleAddDialog(false);
@@ -189,7 +169,24 @@
     var url = 'https://query.yahooapis.com/v1/public/yql?format=json&q=' +
         statement;
     // TODO add cache logic here
-
+    if ('caches' in window) {
+      /*
+       * Check if the service worker has already cached this city's weather
+       * data. If the service worker has the data, then display the cached
+       * data while the app fetches the latest data.
+       */
+      caches.match(url).then(function(response) {
+        if (response) {
+          response.json().then(function updateFromCache(json) {
+            var results = json.query.results;
+            results.key = key;
+            results.label = label;
+            results.created = json.query.created;
+            app.updateForecastCard(results);
+          });
+        }
+      });
+    }
     // Fetch the latest data.
     var request = new XMLHttpRequest();
     request.onreadystatechange = function() {
@@ -220,6 +217,7 @@
   };
 
   // TODO add saveSelectedCities function here
+  // Save list of cities to localStorage.
   app.saveSelectedCities = function() {
     var selectedCities = JSON.stringify(app.selectedCities);
     localStorage.selectedCities = selectedCities;
@@ -330,9 +328,8 @@
     }
   };
   // TODO uncomment line below to test app with fake data
-  app.updateForecastCard(initialWeatherForecast);
+  // app.updateForecastCard(initialWeatherForecast);
 
-  // TODO add startup code here
   /************************************************************************
    *
    * Code required to start the app
@@ -344,6 +341,7 @@
    *   SimpleDB (https://gist.github.com/inexorabletash/c8069c042b734519680c)
    ************************************************************************/
 
+  // TODO add startup code here
   app.selectedCities = localStorage.selectedCities;
   if (app.selectedCities) {
     app.selectedCities = JSON.parse(app.selectedCities);
@@ -366,9 +364,7 @@
   // TODO add service worker code here
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker
-    .register('../service-worker.js')
-    .then(function() {
-      console.log('Service Woker Registered')
-    })
+             .register('./service-worker.js')
+             .then(function() { console.log('Service Worker Registered'); });
   }
 })();
